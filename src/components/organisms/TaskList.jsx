@@ -14,8 +14,7 @@ import Empty from "@/components/ui/Empty";
 import Loading from "@/components/ui/Loading";
 import * as categoryService from "@/services/api/categoryService";
 import * as taskService from "@/services/api/taskService";
-import { create as createTask, getAll as getAllTasks, update as updateTask } from "@/metadata/tables/task_c.json";
-import { create as createCategory, getAll as getAllCategories, update as updateCategory } from "@/metadata/tables/category_c.json";
+
 const TaskList = () => {
   const [tasks, setTasks] = useState([])
   const [categories, setCategories] = useState([])
