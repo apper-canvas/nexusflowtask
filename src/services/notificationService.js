@@ -65,11 +65,11 @@ export class NotificationService {
     const notification = new Notification(task.title_c, options);
 
 notification.onclick = () => {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && window.focus) {
         window.focus();
         // Navigate to task (will be handled by the component)
-        if (typeof CustomEvent !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('task-notification-click', {
+        if (typeof window.CustomEvent === 'function') {
+          window.dispatchEvent(new window.CustomEvent('task-notification-click', {
             detail: { taskId: task.Id }
           }));
         }
@@ -134,9 +134,8 @@ notification.onclick = () => {
   canRequestPermission() {
     return this.permission === 'default';
   }
-
-  isSupported() {
-    return this.isSupported;
+isNotificationSupported() {
+    return 'Notification' in window;
   }
 }
 
