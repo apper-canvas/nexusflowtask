@@ -1,10 +1,11 @@
 import { motion } from "framer-motion"
 import { format, isToday, isPast, isTomorrow } from "date-fns"
 import PriorityBadge from "@/components/molecules/PriorityBadge"
+import CategoryBadge from "@/components/molecules/CategoryBadge"
 import { Card, CardContent } from "@/components/atoms/Card"
 import ApperIcon from "@/components/ApperIcon"
 
-const TaskItem = ({ task }) => {
+const TaskItem = ({ task, category }) => {
   const formatDueDate = (date) => {
     if (isToday(new Date(date))) return "Today"
     if (isTomorrow(new Date(date))) return "Tomorrow"
@@ -28,12 +29,14 @@ const TaskItem = ({ task }) => {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-3">
+<div className="flex items-center gap-3">
                 <div className="h-4 w-4 rounded border-2 border-gray-300 hover:border-primary-500 transition-colors" />
                 <h3 className="font-medium text-gray-900">{task.title}</h3>
-                <PriorityBadge priority={task.priority} />
+                <div className="flex items-center gap-2">
+                  <PriorityBadge priority={task.priority} />
+                  {category && <CategoryBadge category={category} />}
+                </div>
               </div>
-              
               <div className="flex items-center gap-4 mt-2 ml-7">
                 <div className={`flex items-center gap-1 text-sm ${getDueDateColor(task.dueDate)}`}>
                   <ApperIcon name="Calendar" size={14} />

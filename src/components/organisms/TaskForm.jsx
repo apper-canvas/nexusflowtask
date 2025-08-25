@@ -1,21 +1,41 @@
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { format } from "date-fns"
-import FormField from "@/components/molecules/FormField"
-import Input from "@/components/atoms/Input"
-import Select from "@/components/atoms/Select"
-import Button from "@/components/atoms/Button"
-import { Card, CardContent } from "@/components/atoms/Card"
-import ApperIcon from "@/components/ApperIcon"
-
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { format } from "date-fns";
+import { Card, CardContent } from "@/components/atoms/Card";
+import * as categoryService from "@/services/api/categoryService";
+import ApperIcon from "@/components/ApperIcon";
+import FormField from "@/components/molecules/FormField";
+import Select from "@/components/atoms/Select";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
 const TaskForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     title: "",
     dueDate: format(new Date(), "yyyy-MM-dd"),
-    priority: "Medium"
+    priority: "Medium",
+    categoryId: ""
   })
+  const [categories, setCategories] = useState([])
   const [errors, setErrors] = useState({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
+const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const loadCategories = async () => {
+    try {
+      const data = await categoryService.getAll()
+      setCategories(data)
+      // Set default category if available
+      if (data.length > 0 && !formData.categoryId) {
+        setFormData(prev => ({ ...prev, categoryId: data[0].Id }))
+      }
+    } catch (err) {
+      // Categories are optional, so we don't show error
+      console.warn("Failed to load categories:", err)
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -47,10 +67,11 @@ const TaskForm = ({ onSubmit, onCancel }) => {
     try {
       setIsSubmitting(true)
       await onSubmit(formData)
-      setFormData({
+setFormData({
         title: "",
         dueDate: format(new Date(), "yyyy-MM-dd"),
-        priority: "Medium"
+        priority: "Medium",
+        categoryId: categories.length > 0 ? categories[0].Id : ""
       })
     } catch (error) {
       // Error handling is done in parent component
@@ -75,12 +96,12 @@ const TaskForm = ({ onSubmit, onCancel }) => {
             <h3 className="text-lg font-semibold text-gray-900">Create New Task</h3>
           </div>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <FormField
                 label="Task Title"
                 error={errors.title}
-                className="md:col-span-2 lg:col-span-1"
+                className="md:col-span-2"
               >
                 <Input
                   placeholder="Enter task title..."
@@ -115,6 +136,24 @@ const TaskForm = ({ onSubmit, onCancel }) => {
                   <option value="High">High</option>
                 </Select>
               </FormField>
+              
+              <FormField
+                label="Category"
+                className="md:col-span-2 lg:col-span-1"
+              >
+                <Select
+                  value={formData.categoryId}
+                  onChange={(e) => handleChange("categoryId", parseInt(e.target.value))}
+                  className="bg-white"
+                >
+                  <option value="">No Category</option>
+                  {categories.map((category) => (
+                    <option key={category.Id} value={category.Id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </Select>
+</FormField>
             </div>
             
             <div className="flex items-center gap-3 pt-2">

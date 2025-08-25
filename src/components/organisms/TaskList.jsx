@@ -1,31 +1,38 @@
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { toast } from "react-toastify"
-import TaskItem from "@/components/molecules/TaskItem"
-import Button from "@/components/atoms/Button"
-import ApperIcon from "@/components/ApperIcon"
-import Loading from "@/components/ui/Loading"
-import Error from "@/components/ui/Error"
-import Empty from "@/components/ui/Empty"
-import TaskForm from "@/components/organisms/TaskForm"
-import * as taskService from "@/services/api/taskService"
-
+import React, { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "react-toastify";
+import CategoryBadge from "@/components/molecules/CategoryBadge";
+import * as categoryService from "@/services/api/categoryService";
+import ApperIcon from "@/components/ApperIcon";
+import TaskItem from "@/components/molecules/TaskItem";
+import Button from "@/components/atoms/Button";
+import TaskForm from "@/components/organisms/TaskForm";
+import Error from "@/components/ui/Error";
+import Empty from "@/components/ui/Empty";
+import Loading from "@/components/ui/Loading";
+import * as taskService from "@/services/api/taskService";
 const TaskList = () => {
   const [tasks, setTasks] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showForm, setShowForm] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("dueDate")
 
-  const loadTasks = async () => {
+const loadData = async () => {
     try {
       setLoading(true)
       setError(null)
-      const data = await taskService.getAll()
-      setTasks(data)
+      const [taskData, categoryData] = await Promise.all([
+        taskService.getAll(),
+        categoryService.getAll()
+      ])
+      setTasks(taskData)
+      setCategories(categoryData)
     } catch (err) {
-      setError("Failed to load tasks. Please try again.")
-      toast.error("Failed to load tasks")
+      setError("Failed to load data. Please try again.")
+      toast.error("Failed to load data")
     } finally {
       setLoading(false)
     }
@@ -56,18 +63,28 @@ const TaskList = () => {
       default:
         return sorted
     }
+}
+
+  const filterTasks = (tasks, categoryFilter) => {
+    if (categoryFilter === "all") return tasks
+    return tasks.filter(task => task.categoryId === parseInt(categoryFilter))
+  }
+
+  const getCategoryTaskCount = (categoryId) => {
+    return tasks.filter(task => task.categoryId === categoryId).length
   }
 
   useEffect(() => {
-    loadTasks()
+    loadData()
   }, [])
 
-  if (loading) return <Loading />
-  if (error) return <Error message={error} onRetry={loadTasks} />
+if (loading) return <Loading />
+  if (error) return <Error message={error} onRetry={loadData} />
   
-  const sortedTasks = sortTasks(tasks, sortBy)
+  const filteredTasks = filterTasks(tasks, selectedCategory)
+  const sortedTasks = sortTasks(filteredTasks, sortBy)
 
-  return (
+return (
     <div className="space-y-6">
       {/* Header with actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -81,7 +98,7 @@ const TaskList = () => {
           </Button>
           
           <div className="text-sm text-gray-600">
-            {tasks.length} task{tasks.length !== 1 ? "s" : ""} total
+            {filteredTasks.length} of {tasks.length} task{tasks.length !== 1 ? "s" : ""}
           </div>
         </div>
         
@@ -100,6 +117,51 @@ const TaskList = () => {
         </div>
       </div>
 
+      {/* Category Filter Bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-gray-600 font-medium">Filter by category:</span>
+        
+        <Button
+          size="sm"
+          variant={selectedCategory === "all" ? "default" : "secondary"}
+          onClick={() => setSelectedCategory("all")}
+          className="flex items-center gap-2"
+        >
+          <ApperIcon name="Filter" size={14} />
+          All ({tasks.length})
+        </Button>
+        
+        {categories.map((category) => {
+          const taskCount = getCategoryTaskCount(category.Id)
+          const isActive = selectedCategory === category.Id.toString()
+          
+          return (
+            <Button
+              key={category.Id}
+              size="sm"
+              variant={isActive ? "default" : "secondary"}
+              onClick={() => setSelectedCategory(category.Id.toString())}
+              className="flex items-center gap-2"
+              style={isActive ? {
+                backgroundColor: category.color,
+                borderColor: category.color,
+                color: 'white'
+              } : {
+                backgroundColor: `${category.color}10`,
+                borderColor: `${category.color}30`,
+                color: category.color
+              }}
+            >
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: isActive ? 'white' : category.color }}
+              />
+              {category.name} ({taskCount})
+            </Button>
+          )
+        })}
+      </div>
+
       {/* Task form */}
       <AnimatePresence>
         {showForm && (
@@ -116,27 +178,33 @@ const TaskList = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Task list */}
+{/* Task list */}
       <div className="space-y-3">
         <AnimatePresence>
           {sortedTasks.length === 0 ? (
             <Empty
-              title="No tasks yet"
-              description="Create your first task to get started with FlowTask"
+              title={selectedCategory === "all" ? "No tasks yet" : "No tasks in this category"}
+              description={selectedCategory === "all" 
+                ? "Create your first task to get started with FlowTask"
+                : "Try creating a task or selecting a different category"
+              }
               actionLabel="Add Task"
               onAction={() => setShowForm(true)}
               icon="CheckSquare"
             />
           ) : (
             sortedTasks.map((task) => (
-              <TaskItem key={task.Id} task={task} />
+              <TaskItem 
+                key={task.Id} 
+                task={task} 
+                category={categories.find(cat => cat.Id === task.categoryId)}
+              />
             ))
           )}
         </AnimatePresence>
       </div>
     </div>
-  )
+)
 }
 
 export default TaskList
