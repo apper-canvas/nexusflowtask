@@ -100,7 +100,7 @@ function AppContent() {
         setIsInitialized(true);
       }
     });
-  }, []);
+  }, [navigate, dispatch]);
   
   // Authentication methods to share via context
   const authMethods = {
