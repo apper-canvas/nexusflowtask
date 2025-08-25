@@ -9,7 +9,7 @@ import Select from "@/components/atoms/Select";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
 const TaskForm = ({ onSubmit, onCancel }) => {
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     title: "",
     dueDate: format(new Date(), "yyyy-MM-dd"),
     priority: "Medium",
@@ -141,19 +141,19 @@ setFormData({
                 label="Category"
                 className="md:col-span-2 lg:col-span-1"
               >
-                <Select
+<Select
                   value={formData.categoryId}
-                  onChange={(e) => handleChange("categoryId", parseInt(e.target.value))}
+                  onChange={(e) => handleChange("categoryId", e.target.value ? parseInt(e.target.value) : "")}
                   className="bg-white"
                 >
                   <option value="">No Category</option>
                   {categories.map((category) => (
                     <option key={category.Id} value={category.Id}>
-                      {category.name}
+                      {category.Name}
                     </option>
                   ))}
                 </Select>
-</FormField>
+              </FormField>
             </div>
             
             <div className="flex items-center gap-3 pt-2">

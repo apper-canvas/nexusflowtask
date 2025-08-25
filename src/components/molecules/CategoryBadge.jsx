@@ -9,13 +9,13 @@ const CategoryBadge = ({ category, className, showCount = false, taskCount = 0 }
         "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all border",
         className
       )}
-      style={{
-        backgroundColor: `${category.color}15`,
-        borderColor: `${category.color}40`,
-        color: category.color
+style={{
+        backgroundColor: `${category.color_c}15`,
+        borderColor: `${category.color_c}40`,
+        color: category.color_c
       }}
     >
-      {category.name}
+      {category.Name}
       {showCount && <span className="ml-1">({taskCount})</span>}
     </span>
   )

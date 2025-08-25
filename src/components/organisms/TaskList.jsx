@@ -52,26 +52,32 @@ const loadData = async () => {
 
   const sortTasks = (tasks, sortBy) => {
     const sorted = [...tasks]
-    switch (sortBy) {
+switch (sortBy) {
       case "dueDate":
-        return sorted.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        return sorted.sort((a, b) => new Date(a.due_date_c) - new Date(b.due_date_c))
       case "priority":
         const priorityOrder = { High: 3, Medium: 2, Low: 1 }
-        return sorted.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority])
+        return sorted.sort((a, b) => priorityOrder[b.priority_c] - priorityOrder[a.priority_c])
       case "created":
-        return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        return sorted.sort((a, b) => new Date(b.created_at_c) - new Date(a.created_at_c))
       default:
         return sorted
     }
 }
 
-  const filterTasks = (tasks, categoryFilter) => {
+const filterTasks = (tasks, categoryFilter) => {
     if (categoryFilter === "all") return tasks
-    return tasks.filter(task => task.categoryId === parseInt(categoryFilter))
+    return tasks.filter(task => {
+      const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
+      return taskCategoryId === parseInt(categoryFilter);
+    });
   }
 
   const getCategoryTaskCount = (categoryId) => {
-    return tasks.filter(task => task.categoryId === categoryId).length
+    return tasks.filter(task => {
+      const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
+      return taskCategoryId === categoryId;
+    }).length;
   }
 
   useEffect(() => {
@@ -193,13 +199,16 @@ return (
               icon="CheckSquare"
             />
           ) : (
-            sortedTasks.map((task) => (
-              <TaskItem 
-                key={task.Id} 
-                task={task} 
-                category={categories.find(cat => cat.Id === task.categoryId)}
-              />
-            ))
+sortedTasks.map((task) => {
+              const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
+              return (
+                <TaskItem 
+                  key={task.Id} 
+                  task={task} 
+                  category={categories.find(cat => cat.Id === taskCategoryId)}
+                />
+              );
+            })
           )}
         </AnimatePresence>
       </div>

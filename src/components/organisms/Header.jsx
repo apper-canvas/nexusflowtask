@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useState, useContext } from "react"
 import { useLocation } from "react-router-dom"
+import { useSelector } from 'react-redux'
+import { AuthContext } from '@/App'
 import ApperIcon from "@/components/ApperIcon"
 import Button from "@/components/atoms/Button"
-
 const Header = ({ onMobileMenuClick }) => {
   const location = useLocation()
   
@@ -41,20 +42,42 @@ const Header = ({ onMobileMenuClick }) => {
           </div>
         </div>
 
-        {/* Header actions */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="hidden sm:flex">
-            <ApperIcon name="Search" size={16} className="mr-2" />
-            Search
-          </Button>
-          
-          <Button variant="ghost" size="sm">
-            <ApperIcon name="Bell" size={16} />
-          </Button>
-        </div>
+{/* Header actions */}
+        <HeaderActions />
       </div>
     </div>
   )
 }
 
-export default Header
+const HeaderActions = () => {
+  const { logout } = useContext(AuthContext);
+  const { user, isAuthenticated } = useSelector((state) => state.user);
+
+  return (
+    <div className="flex items-center gap-3">
+      <Button variant="ghost" size="sm" className="hidden sm:flex">
+        <ApperIcon name="Search" size={16} className="mr-2" />
+        Search
+      </Button>
+      
+      <Button variant="ghost" size="sm">
+        <ApperIcon name="Bell" size={16} />
+      </Button>
+
+      {isAuthenticated && (
+        <>
+          <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600">
+            <ApperIcon name="User" size={16} />
+            <span>{user?.firstName || 'User'}</span>
+          </div>
+          <Button variant="secondary" size="sm" onClick={logout}>
+            <ApperIcon name="LogOut" size={16} className="mr-2" />
+            Logout
+          </Button>
+        </>
+      )}
+    </div>
+  );
+};
+
+export default Header;

@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { toast } from "react-toastify"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/Card"
-import Button from "@/components/atoms/Button"
-import Input from "@/components/atoms/Input"
-import FormField from "@/components/molecules/FormField"
-import CategoryBadge from "@/components/molecules/CategoryBadge"
-import ColorPicker from "@/components/molecules/ColorPicker"
-import ApperIcon from "@/components/ApperIcon"
-import Loading from "@/components/ui/Loading"
-import Error from "@/components/ui/Error"
-import Empty from "@/components/ui/Empty"
-import * as categoryService from "@/services/api/categoryService"
-import * as taskService from "@/services/api/taskService"
+import React, { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "react-toastify";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/atoms/Card";
+import ApperIcon from "@/components/ApperIcon";
+import ColorPicker from "@/components/molecules/ColorPicker";
+import FormField from "@/components/molecules/FormField";
+import CategoryBadge from "@/components/molecules/CategoryBadge";
+import Button from "@/components/atoms/Button";
+import Input from "@/components/atoms/Input";
+import Error from "@/components/ui/Error";
+import Empty from "@/components/ui/Empty";
+import Loading from "@/components/ui/Loading";
+import * as categoryService from "@/services/api/categoryService";
+import * as taskService from "@/services/api/taskService";
 
 const CategoriesPage = () => {
   const [categories, setCategories] = useState([])
@@ -22,7 +22,7 @@ const CategoriesPage = () => {
   const [showForm, setShowForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     name: "",
     color: "#8B5CF6"
   })
@@ -47,8 +47,11 @@ const CategoriesPage = () => {
     }
   }
 
-  const getCategoryTaskCount = (categoryId) => {
-    return tasks.filter(task => task.categoryId === categoryId).length
+const getCategoryTaskCount = (categoryId) => {
+    return tasks.filter(task => {
+      const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
+      return taskCategoryId === categoryId;
+    }).length;
   }
 
   const validateForm = () => {
@@ -97,16 +100,15 @@ const CategoriesPage = () => {
     }
   }
 
-  const handleEdit = (category) => {
+const handleEdit = (category) => {
     setEditingCategory(category)
     setFormData({
-      name: category.name,
-      color: category.color
+      name: category.Name,
+      color: category.color_c
     })
     setShowForm(true)
-    setFormErrors({})
+setFormErrors({})
   }
-
   const handleDelete = async (category) => {
     const taskCount = getCategoryTaskCount(category.Id)
     
@@ -115,7 +117,7 @@ const CategoriesPage = () => {
       return
     }
 
-    if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
+if (!window.confirm(`Are you sure you want to delete "${category.Name}"?`)) {
       return
     }
 
@@ -273,12 +275,12 @@ const CategoriesPage = () => {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
+<div className="flex items-center gap-3 mb-2">
                               <div
                                 className="w-4 h-4 rounded-full border-2 border-gray-200"
-                                style={{ backgroundColor: category.color }}
+                                style={{ backgroundColor: category.color_c }}
                               />
-                              <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                              <h3 className="font-semibold text-gray-900">{category.Name}</h3>
                             </div>
                             
                             <div className="space-y-1">
