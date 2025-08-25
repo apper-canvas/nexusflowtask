@@ -11,7 +11,7 @@ import Error from "@/components/ui/Error";
 import Empty from "@/components/ui/Empty";
 import Loading from "@/components/ui/Loading";
 import * as taskService from "@/services/api/taskService";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const TaskList = () => {
   const [tasks, setTasks] = useState([])
