@@ -215,7 +215,6 @@ return (
             <option value="created">Recently Created</option>
           </select>
         </div>
-      </div>
 </div>
 
       {/* Search and Filter Bar */}
