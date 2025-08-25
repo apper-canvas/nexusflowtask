@@ -732,6 +732,4 @@ const TaskDetailsPopover = ({ task, categories, onUpdate, onDelete, onClose }) =
     </motion.div>
   )
 }
-
 export default CalendarPage
-}
