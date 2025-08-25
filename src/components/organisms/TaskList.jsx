@@ -88,10 +88,27 @@ const handleDragEnd = async (result) => {
     }
   };
 
-  const handleCreateTask = async (taskData) => {
+const handleCreateTask = async (taskData) => {
     try {
       const newTask = await taskService.create(taskData)
       setTasks(prev => [newTask, ...prev])
+      
+      // Create reminders if any were added
+      if (taskData.reminders && taskData.reminders.length > 0) {
+        const reminderService = await import("@/services/api/reminderService");
+        for (const reminder of taskData.reminders) {
+          try {
+            await reminderService.create({
+              taskId: newTask.Id,
+              taskTitle: newTask.title_c,
+              reminderTime: new Date(reminder.time).toISOString()
+            });
+          } catch (reminderError) {
+            console.error("Failed to create reminder:", reminderError);
+          }
+        }
+      }
+      
       setShowForm(false)
       toast.success("Task created successfully!")
     } catch (err) {

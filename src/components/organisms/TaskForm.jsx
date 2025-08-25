@@ -13,11 +13,13 @@ const [formData, setFormData] = useState({
     title: "",
     dueDate: format(new Date(), "yyyy-MM-dd"),
     priority: "Medium",
-    categoryId: ""
+    categoryId: "",
+    reminders: []
   })
   const [categories, setCategories] = useState([])
   const [errors, setErrors] = useState({})
-const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showReminderOptions, setShowReminderOptions] = useState(false)
 
   const loadCategories = async () => {
     try {
@@ -58,6 +60,39 @@ const [isSubmitting, setIsSubmitting] = useState(false)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+const addReminder = () => {
+    const reminderTime = new Date(formData.dueDate);
+    reminderTime.setHours(reminderTime.getHours() - 1); // 1 hour before due date
+    
+    const newReminder = {
+      id: Date.now(),
+      time: format(reminderTime, "yyyy-MM-dd'T'HH:mm"),
+      label: "1 hour before due date"
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      reminders: [...prev.reminders, newReminder]
+    }));
+  };
+
+  const removeReminder = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      reminders: prev.reminders.filter(r => r.id !== id)
+    }));
+  };
+
+  const updateReminderTime = (id, newTime) => {
+    setFormData(prev => ({
+      ...prev,
+      reminders: prev.reminders.map(r => 
+        r.id === id 
+          ? { ...r, time: newTime, label: `Custom: ${format(new Date(newTime), "MMM d, h:mm a")}` }
+          : r
+      )
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -67,12 +102,14 @@ const [isSubmitting, setIsSubmitting] = useState(false)
     try {
       setIsSubmitting(true)
       await onSubmit(formData)
-setFormData({
+      setFormData({
         title: "",
         dueDate: format(new Date(), "yyyy-MM-dd"),
         priority: "Medium",
-        categoryId: categories.length > 0 ? categories[0].Id : ""
+        categoryId: categories.length > 0 ? categories[0].Id : "",
+        reminders: []
       })
+      setShowReminderOptions(false)
     } catch (error) {
       // Error handling is done in parent component
     } finally {
@@ -153,10 +190,69 @@ setFormData({
                     </option>
                   ))}
                 </Select>
-              </FormField>
+</FormField>
+            </div>
+
+            {/* Reminder Options */}
+            <div className="md:col-span-2 lg:col-span-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">Reminders</label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowReminderOptions(!showReminderOptions)}
+                  className="text-xs"
+                >
+                  <ApperIcon name="Bell" size={12} className="mr-1" />
+                  {showReminderOptions ? "Hide" : "Add Reminders"}
+                </Button>
+              </div>
+
+              {showReminderOptions && (
+                <div className="bg-gray-50 rounded-lg p-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={addReminder}
+                      className="text-xs"
+                    >
+                      <ApperIcon name="Plus" size={12} className="mr-1" />
+                      Add Reminder
+                    </Button>
+                  </div>
+
+                  {formData.reminders.length > 0 && (
+                    <div className="space-y-2">
+                      {formData.reminders.map((reminder) => (
+                        <div key={reminder.id} className="flex items-center gap-2 bg-white rounded p-2">
+                          <ApperIcon name="Bell" size={12} className="text-blue-600" />
+                          <input
+                            type="datetime-local"
+                            value={reminder.time}
+                            onChange={(e) => updateReminderTime(reminder.id, e.target.value)}
+                            className="flex-1 text-xs border border-gray-300 rounded px-2 py-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeReminder(reminder.id)}
+                            className="p-1 text-red-600"
+                          >
+                            <ApperIcon name="Trash2" size={12} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-3 pt-2 md:col-span-2 lg:col-span-4">
               <Button
                 type="submit"
                 disabled={isSubmitting}

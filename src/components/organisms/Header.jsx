@@ -1,7 +1,10 @@
 import { useState, useContext } from "react"
 import { useLocation } from "react-router-dom"
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { AuthContext } from '@/App'
+import { setNotificationCenterOpen } from '@/store/notificationSlice'
+import { useNotificationSystem } from '@/hooks/useNotificationSystem'
+import NotificationCenter from '@/components/molecules/NotificationCenter'
 import ApperIcon from "@/components/ApperIcon"
 import Button from "@/components/atoms/Button"
 const Header = ({ onMobileMenuClick }) => {
@@ -51,8 +54,26 @@ const Header = ({ onMobileMenuClick }) => {
 
 const HeaderActions = () => {
   const { logout } = useContext(AuthContext);
+  const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.user);
+  const { unreadCount, isNotificationCenterOpen } = useSelector((state) => state.notifications);
+  const { requestNotificationPermission, navigateToTask, canRequestPermission } = useNotificationSystem();
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
 
+  const handleNotificationClick = async () => {
+    if (canRequestPermission) {
+      try {
+        await requestNotificationPermission();
+      } catch (error) {
+        console.error("Failed to request notification permission:", error);
+      }
+    }
+    setShowNotificationCenter(!showNotificationCenter);
+  };
+
+  const handleNotificationCenterClose = () => {
+    setShowNotificationCenter(false);
+  };
   return (
     <div className="flex items-center gap-3">
 <Button 
@@ -71,9 +92,27 @@ const HeaderActions = () => {
         Search
       </Button>
       
-      <Button variant="ghost" size="sm">
-        <ApperIcon name="Bell" size={16} />
-      </Button>
+<div className="relative">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleNotificationClick}
+          className="relative"
+        >
+          <ApperIcon name="Bell" size={16} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+        
+        <NotificationCenter
+          isOpen={showNotificationCenter}
+          onClose={handleNotificationCenterClose}
+          onNavigateToTask={navigateToTask}
+        />
+      </div>
 
       {isAuthenticated && (
         <>

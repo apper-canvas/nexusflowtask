@@ -1,16 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
 import PriorityBadge from "@/components/molecules/PriorityBadge";
 import CategoryBadge from "@/components/molecules/CategoryBadge";
+import ReminderList from "@/components/molecules/ReminderList";
 import ApperIcon from "@/components/ApperIcon";
 import Button from "@/components/atoms/Button";
 import * as taskService from "@/services/api/taskService";
+import * as reminderService from "@/services/api/reminderService";
 
 const TaskItem = ({ task, category, searchText = "" }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showReminders, setShowReminders] = useState(false);
+  const [reminderCount, setReminderCount] = useState(0);
+const loadReminderCount = async () => {
+    try {
+      const reminders = await reminderService.getByTaskId(task.Id);
+      setReminderCount(reminders.filter(r => r.status_c === 'Scheduled').length);
+    } catch (error) {
+      // Silently handle error
+      setReminderCount(0);
+    }
+  };
+
+  useEffect(() => {
+    loadReminderCount();
+  }, [task.Id]);
 
   const handleStatusChange = async (newStatus) => {
     if (isUpdating) return;
@@ -84,13 +101,26 @@ const TaskItem = ({ task, category, searchText = "" }) => {
         }`}>
           {highlightText(task.title_c, searchText)}
         </h3>
-        
-        <div className="flex items-center gap-2 ml-2">
+<div className="flex items-center gap-2 ml-2">
           {searchText && (
             <div className="text-xs text-gray-500">
               <ApperIcon name="Search" size={12} className="inline" />
             </div>
           )}
+          {reminderCount > 0 && (
+            <div className="flex items-center gap-1 text-xs text-blue-600">
+              <ApperIcon name="Bell" size={12} />
+              <span>{reminderCount}</span>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowReminders(!showReminders)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700 p-1"
+          >
+            <ApperIcon name="Bell" size={14} />
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -116,8 +146,24 @@ const TaskItem = ({ task, category, searchText = "" }) => {
             {isOverdue && <ApperIcon name="AlertTriangle" size={12} />}
             {format(new Date(task.due_date_c), 'MMM d')}
           </div>
-        )}
+)}
       </div>
+
+      {/* Reminder Section */}
+      {showReminders && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="mt-3 pt-3 border-t border-gray-100"
+        >
+          <ReminderList 
+            taskId={task.Id} 
+            taskTitle={task.title_c}
+            onReminderAdded={() => loadReminderCount()}
+          />
+        </motion.div>
+      )}
     </motion.div>
   )
 }

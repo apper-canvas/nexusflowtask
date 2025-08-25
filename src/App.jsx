@@ -4,6 +4,7 @@ import { Provider, useDispatch, useSelector } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import store from '@/store/store';
 import { setUser, clearUser } from '@/store/userSlice';
+import { useNotificationSystem } from '@/hooks/useNotificationSystem';
 import Layout from '@/components/organisms/Layout';
 import TasksPage from '@/components/pages/TasksPage';
 import CalendarPage from '@/components/pages/CalendarPage';
@@ -22,6 +23,9 @@ function AppContent() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Initialize notification system
+  useNotificationSystem();
   
   // Get authentication status
   const userState = useSelector((state) => state.user);
