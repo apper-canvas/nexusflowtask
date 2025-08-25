@@ -1,8 +1,8 @@
 // Browser notification service
 export class NotificationService {
-  constructor() {
+constructor() {
     this.permission = Notification.permission;
-    this.isSupported = 'Notification' in window;
+    this._isSupported = 'Notification' in window;
   }
 
   async requestPermission() {
@@ -134,8 +134,8 @@ notification.onclick = () => {
   canRequestPermission() {
     return this.permission === 'default';
   }
-isNotificationSupported() {
-    return 'Notification' in window;
+isSupported() {
+    return this._isSupported;
   }
 }
 

@@ -83,7 +83,7 @@ export const useNotificationSystem = () => {
     }, 100);
   };
 
-  useEffect(() => {
+useEffect(() => {
     // Check permission on mount
     if (notificationService.isSupported()) {
       dispatch(setPermissionGranted(notificationService.isPermissionGranted()));
@@ -110,7 +110,7 @@ export const useNotificationSystem = () => {
     };
   }, []);
 
-  return {
+return {
     requestNotificationPermission,
     navigateToTask,
     isNotificationSupported: notificationService.isSupported(),
