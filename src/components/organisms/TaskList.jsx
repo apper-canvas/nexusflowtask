@@ -11,6 +11,8 @@ import Error from "@/components/ui/Error";
 import Empty from "@/components/ui/Empty";
 import Loading from "@/components/ui/Loading";
 import * as taskService from "@/services/api/taskService";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+
 const TaskList = () => {
   const [tasks, setTasks] = useState([])
   const [categories, setCategories] = useState([])
@@ -37,6 +39,49 @@ const loadData = async () => {
       setLoading(false)
     }
   }
+
+const handleDragEnd = async (result) => {
+    const { destination, source, draggableId } = result;
+
+    // If dropped outside a droppable area
+    if (!destination) return;
+
+    // If dropped in the same position
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      return;
+    }
+
+    // Find the task being moved
+    const taskId = parseInt(draggableId);
+    const task = tasks.find(t => t.Id === taskId);
+    if (!task) return;
+
+    // Update task status based on destination column
+    const newStatus = destination.droppableId;
+    
+    try {
+      // Update task status in database
+      const updatedTask = await taskService.update(taskId, {
+        title: task.title_c,
+        dueDate: task.due_date_c,
+        priority: task.priority_c,
+        status: newStatus,
+        categoryId: task.category_id_c?.Id || task.category_id_c
+      });
+
+      // Update local state
+      setTasks(prev => prev.map(t => 
+        t.Id === taskId 
+          ? { ...t, status_c: newStatus }
+          : t
+      ));
+
+      toast.success(`Task moved to ${newStatus}!`);
+    } catch (error) {
+      toast.error("Failed to update task status");
+      console.error("Error updating task status:", error);
+    }
+  };
 
   const handleCreateTask = async (taskData) => {
     try {
@@ -65,6 +110,12 @@ switch (sortBy) {
     }
 }
 
+const getTasksByStatus = (status) => {
+    const filtered = filterTasks(tasks, selectedCategory);
+    const statusTasks = filtered.filter(task => task.status_c === status);
+    return sortTasks(statusTasks, sortBy);
+  };
+
 const filterTasks = (tasks, categoryFilter) => {
     if (categoryFilter === "all") return tasks
     return tasks.filter(task => {
@@ -79,7 +130,6 @@ const filterTasks = (tasks, categoryFilter) => {
       return taskCategoryId === categoryId;
     }).length;
   }
-
   useEffect(() => {
     loadData()
   }, [])
@@ -184,34 +234,81 @@ return (
           </motion.div>
         )}
       </AnimatePresence>
-{/* Task list */}
-      <div className="space-y-3">
-        <AnimatePresence>
-          {sortedTasks.length === 0 ? (
-            <Empty
-              title={selectedCategory === "all" ? "No tasks yet" : "No tasks in this category"}
-              description={selectedCategory === "all" 
-                ? "Create your first task to get started with FlowTask"
-                : "Try creating a task or selecting a different category"
-              }
-              actionLabel="Add Task"
-              onAction={() => setShowForm(true)}
-              icon="CheckSquare"
-            />
-          ) : (
-sortedTasks.map((task) => {
-              const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
-              return (
-                <TaskItem 
-                  key={task.Id} 
-                  task={task} 
-                  category={categories.find(cat => cat.Id === taskCategoryId)}
-                />
-              );
-            })
-          )}
-        </AnimatePresence>
-      </div>
+{/* Kanban Board */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {["To Do", "In Progress", "Done"].map((status) => {
+            const statusTasks = getTasksByStatus(status);
+            
+            return (
+              <div key={status} className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-900">{status}</h3>
+                    <span className="bg-white text-gray-600 text-sm px-2 py-1 rounded-full font-medium">
+                      {statusTasks.length}
+                    </span>
+                  </div>
+                  {status === "Done" && statusTasks.length > 0 && (
+                    <div className="flex items-center gap-1 text-sm text-green-600">
+                      <ApperIcon name="CheckCircle" size={16} />
+                      <span>{Math.round((statusTasks.length / filteredTasks.length) * 100)}%</span>
+                    </div>
+                  )}
+                </div>
+
+                <Droppable droppableId={status}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`space-y-3 min-h-[200px] transition-colors ${
+                        snapshot.isDraggingOver ? "bg-blue-50 border-2 border-blue-300 border-dashed rounded-lg" : ""
+                      }`}
+                    >
+                      <AnimatePresence>
+                        {statusTasks.length === 0 ? (
+                          <div className="text-center py-8 text-gray-500">
+                            <ApperIcon name="Plus" size={24} className="mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">
+                              {status === "To Do" ? "No tasks to start" : 
+                               status === "In Progress" ? "No active tasks" : 
+                               "No completed tasks"}
+                            </p>
+                          </div>
+                        ) : (
+                          statusTasks.map((task, index) => {
+                            const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
+                            const category = categories.find(cat => cat.Id === taskCategoryId);
+                            
+                            return (
+                              <Draggable key={task.Id} draggableId={task.Id.toString()} index={index}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    className={`transition-all ${
+                                      snapshot.isDragging ? "rotate-2 shadow-lg scale-105" : ""
+                                    } ${status === "Done" ? "opacity-75" : ""}`}
+                                  >
+                                    <TaskItem task={task} category={category} />
+                                  </div>
+                                )}
+                              </Draggable>
+                            );
+                          })
+                        )}
+                      </AnimatePresence>
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            );
+          })}
+        </div>
+      </DragDropContext>
     </div>
 )
 }

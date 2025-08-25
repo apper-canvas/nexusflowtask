@@ -50,12 +50,7 @@ const TaskItem = ({ task, category }) => {
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-<span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                {task.status_c}
-              </span>
-            </div>
-          </div>
+</div>
         </CardContent>
       </Card>
     </motion.div>
