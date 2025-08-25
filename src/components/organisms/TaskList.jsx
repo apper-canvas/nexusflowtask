@@ -116,7 +116,7 @@ switch (sortBy) {
 }
 
 const getTasksByStatus = (status) => {
-    const filtered = filterTasks(tasks, selectedCategory);
+    const filtered = filterTasks(tasks, selectedCategory, searchText, filters);
     const statusTasks = filtered.filter(task => task.status_c === status);
     return sortTasks(statusTasks, sortBy);
   };
