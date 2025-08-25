@@ -55,7 +55,18 @@ const HeaderActions = () => {
 
   return (
     <div className="flex items-center gap-3">
-      <Button variant="ghost" size="sm" className="hidden sm:flex">
+<Button 
+        variant="ghost" 
+        size="sm" 
+        className="hidden sm:flex"
+        onClick={() => {
+          // Focus search input if available
+          const searchInput = document.querySelector('input[placeholder*="Search"]');
+          if (searchInput) {
+            searchInput.focus();
+          }
+        }}
+      >
         <ApperIcon name="Search" size={16} className="mr-2" />
         Search
       </Button>

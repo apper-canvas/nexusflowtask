@@ -1,18 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "react-toastify";
-import CategoryBadge from "@/components/molecules/CategoryBadge";
-import * as categoryService from "@/services/api/categoryService";
+import SearchBar from "@/components/molecules/SearchBar";
+import FilterPanel from "@/components/molecules/FilterPanel";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import ApperIcon from "@/components/ApperIcon";
 import TaskItem from "@/components/molecules/TaskItem";
+import CategoryBadge from "@/components/molecules/CategoryBadge";
 import Button from "@/components/atoms/Button";
 import TaskForm from "@/components/organisms/TaskForm";
 import Error from "@/components/ui/Error";
 import Empty from "@/components/ui/Empty";
 import Loading from "@/components/ui/Loading";
+import * as categoryService from "@/services/api/categoryService";
 import * as taskService from "@/services/api/taskService";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-
+import { create as createTask, getAll as getAllTasks, update as updateTask } from "@/metadata/tables/task_c.json";
+import { create as createCategory, getAll as getAllCategories, update as updateCategory } from "@/metadata/tables/category_c.json";
 const TaskList = () => {
   const [tasks, setTasks] = useState([])
   const [categories, setCategories] = useState([])
@@ -21,6 +24,9 @@ const TaskList = () => {
   const [showForm, setShowForm] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("dueDate")
+  const [searchText, setSearchText] = useState("")
+  const [filters, setFilters] = useState({})
+  const searchRef = useRef()
 
 const loadData = async () => {
     try {
@@ -116,30 +122,68 @@ const getTasksByStatus = (status) => {
     return sortTasks(statusTasks, sortBy);
   };
 
-const filterTasks = (tasks, categoryFilter) => {
-    if (categoryFilter === "all") return tasks
-    return tasks.filter(task => {
+// Enhanced filtering with search and advanced filters
+const filterTasks = (tasks, categoryFilter, searchText, filters) => {
+  let filtered = [...tasks];
+
+  // Category filter
+  if (categoryFilter !== "all") {
+    filtered = filtered.filter(task => {
       const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
       return taskCategoryId === parseInt(categoryFilter);
     });
   }
 
-  const getCategoryTaskCount = (categoryId) => {
-    return tasks.filter(task => {
-      const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
-      return taskCategoryId === categoryId;
-    }).length;
+  // Search filter
+  if (searchText) {
+    const searchLower = searchText.toLowerCase();
+    filtered = filtered.filter(task => 
+      task.title_c?.toLowerCase().includes(searchLower) ||
+      task.Name?.toLowerCase().includes(searchLower)
+    );
   }
-  useEffect(() => {
-    loadData()
-  }, [])
+
+  // Advanced filters
+  if (filters.priorities?.length > 0) {
+    filtered = filtered.filter(task => filters.priorities.includes(task.priority_c));
+  }
+
+  if (filters.statuses?.length > 0) {
+    filtered = filtered.filter(task => filters.statuses.includes(task.status_c));
+  }
+
+  if (filters.dateRange?.start || filters.dateRange?.end) {
+    filtered = filtered.filter(task => {
+      if (!task.due_date_c) return false;
+      const dueDate = new Date(task.due_date_c);
+      const start = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
+      const end = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
+      
+      if (start && dueDate < start) return false;
+      if (end && dueDate > end) return false;
+      return true;
+    });
+  }
+
+  return filtered;
+}
+
+const getCategoryTaskCount = (categoryId) => {
+  return tasks.filter(task => {
+    const taskCategoryId = task.category_id_c?.Id || task.category_id_c;
+    return taskCategoryId === categoryId;
+  }).length;
+}
+
+useEffect(() => {
+  loadData()
+}, [])
 
 if (loading) return <Loading />
-  if (error) return <Error message={error} onRetry={loadData} />
-  
-  const filteredTasks = filterTasks(tasks, selectedCategory)
-  const sortedTasks = sortTasks(filteredTasks, sortBy)
+if (error) return <Error message={error} onRetry={loadData} />
 
+const filteredTasks = filterTasks(tasks, selectedCategory, searchText, filters)
+const sortedTasks = sortTasks(filteredTasks, sortBy)
 return (
     <div className="space-y-6">
       {/* Header with actions */}
@@ -172,6 +216,22 @@ return (
           </select>
         </div>
       </div>
+</div>
+
+      {/* Search and Filter Bar */}
+      <div className="space-y-4">
+        <SearchBar 
+          ref={searchRef}
+          onSearch={setSearchText}
+          placeholder="Search tasks by title..."
+          className="max-w-md"
+        />
+        
+        <FilterPanel 
+          onFiltersChange={setFilters}
+          initialFilters={filters}
+        />
+      </div>
 
       {/* Category Filter Bar */}
       <div className="flex flex-wrap items-center gap-2">
@@ -199,25 +259,24 @@ return (
               onClick={() => setSelectedCategory(category.Id.toString())}
               className="flex items-center gap-2"
               style={isActive ? {
-                backgroundColor: category.color,
-                borderColor: category.color,
+                backgroundColor: category.color_c,
+                borderColor: category.color_c,
                 color: 'white'
               } : {
-                backgroundColor: `${category.color}10`,
-                borderColor: `${category.color}30`,
-                color: category.color
+                backgroundColor: `${category.color_c}10`,
+                borderColor: `${category.color_c}30`,
+                color: category.color_c
               }}
             >
               <div
                 className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: isActive ? 'white' : category.color }}
+                style={{ backgroundColor: isActive ? 'white' : category.color_c }}
               />
-              {category.name} ({taskCount})
+              {category.Name} ({taskCount})
             </Button>
           )
         })}
       </div>
-
       {/* Task form */}
       <AnimatePresence>
         {showForm && (
@@ -291,8 +350,12 @@ return (
                                     className={`transition-all ${
                                       snapshot.isDragging ? "rotate-2 shadow-lg scale-105" : ""
                                     } ${status === "Done" ? "opacity-75" : ""}`}
-                                  >
-                                    <TaskItem task={task} category={category} />
+>
+                                    <TaskItem 
+                                      task={task} 
+                                      category={category} 
+                                      searchText={searchText}
+                                    />
                                   </div>
                                 )}
                               </Draggable>

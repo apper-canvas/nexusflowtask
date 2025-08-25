@@ -47,11 +47,22 @@ const CalendarPage = () => {
     loadData()
   }, [currentDate])
 
-  const getTasksForDate = (date) => {
-    return tasks.filter(task => {
+const getTasksForDate = (date, searchText = "") => {
+    let dateTasks = tasks.filter(task => {
       if (!task.due_date_c) return false
       return isSameDay(new Date(task.due_date_c), date)
     })
+    
+    // Apply search filter if provided
+    if (searchText) {
+      const searchLower = searchText.toLowerCase();
+      dateTasks = dateTasks.filter(task => 
+        task.title_c?.toLowerCase().includes(searchLower) ||
+        task.Name?.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    return dateTasks
   }
 
   const getTaskStatusColor = (status) => {
