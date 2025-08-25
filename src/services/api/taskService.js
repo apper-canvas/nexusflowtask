@@ -1,13 +1,22 @@
+// Check if ApperSDK is available
+if (!window.ApperSDK) {
+  console.error("ApperSDK not found. Please ensure the script tag is added to index.html: <script src=\"%VITE_APPER_SDK_CDN_URL%\"></script>");
+}
+
 // Initialize ApperClient
-const { ApperClient } = window.ApperSDK;
-const apperClient = new ApperClient({
+const { ApperClient } = window.ApperSDK || {};
+const apperClient = ApperClient ? new ApperClient({
   apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
   apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
-});
+}) : null;
 
 const tableName = 'task_c';
 
 export const getAll = async () => {
+  if (!apperClient) {
+    throw new Error("ApperSDK not initialized. Please check that the SDK script is loaded.");
+  }
+  
   try {
     const params = {
       fields: [
@@ -74,6 +83,10 @@ export const getAll = async () => {
 };
 
 export const getById = async (id) => {
+  if (!apperClient) {
+    throw new Error("ApperSDK not initialized. Please check that the SDK script is loaded.");
+  }
+  
   try {
     const params = {
       fields: [
@@ -134,6 +147,10 @@ export const getById = async (id) => {
 };
 
 export const create = async (taskData) => {
+  if (!apperClient) {
+    throw new Error("ApperSDK not initialized. Please check that the SDK script is loaded.");
+  }
+  
   try {
     const params = {
       records: [
@@ -178,6 +195,10 @@ export const create = async (taskData) => {
 };
 
 export const update = async (id, updates) => {
+  if (!apperClient) {
+    throw new Error("ApperSDK not initialized. Please check that the SDK script is loaded.");
+  }
+  
   try {
     const params = {
       records: [
@@ -222,6 +243,10 @@ export const update = async (id, updates) => {
 };
 
 export const remove = async (id) => {
+  if (!apperClient) {
+    throw new Error("ApperSDK not initialized. Please check that the SDK script is loaded.");
+  }
+  
   try {
     const params = {
       RecordIds: [parseInt(id)]
