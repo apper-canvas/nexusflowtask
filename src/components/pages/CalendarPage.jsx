@@ -14,8 +14,6 @@ import Error from "@/components/ui/Error";
 import Loading from "@/components/ui/Loading";
 import * as categoryService from "@/services/api/categoryService";
 import * as taskService from "@/services/api/taskService";
-import { create as taskCreate, getAll as taskGetAll, remove as taskRemove, update as taskUpdate } from "@/metadata/tables/task_c.json";
-import { create as categoryCreate, getAll as categoryGetAll, remove as categoryRemove, update as categoryUpdate } from "@/metadata/tables/category_c.json";
 const CalendarPage = () => {
   const [tasks, setTasks] = useState([])
   const [categories, setCategories] = useState([])
