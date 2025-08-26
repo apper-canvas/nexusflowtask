@@ -121,8 +121,6 @@ try {
     }
   };
 
-  const removeAttachment = (id) => {
-    setAttachments(prev => prev.filter(att => att.id !== id));
 const removeAttachment = (id) => {
     setAttachments(prev => prev.filter(att => att.id !== id));
   };
@@ -222,7 +220,7 @@ const removeAttachment = (id) => {
                 label="Category"
                 className="md:col-span-2 lg:col-span-1"
               >
-<Select
+                <Select
                   value={formData.categoryId}
                   onChange={(e) => handleChange("categoryId", e.target.value ? parseInt(e.target.value) : "")}
                   className="bg-white"
@@ -234,9 +232,10 @@ const removeAttachment = (id) => {
                     </option>
                   ))}
                 </Select>
-</FormField>
+              </FormField>
             </div>
-{/* Reminder Options */}
+
+            {/* Reminder Options */}
             <div className="md:col-span-2 lg:col-span-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700">Reminders</label>
@@ -290,114 +289,114 @@ const removeAttachment = (id) => {
                 </motion.div>
               )}
             </div>
-        {/* File Attachments Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700">Attachments</h3>
-            <div className="flex items-center space-x-2">
-              <input
-                type="file"
-                id="file-upload"
-                multiple
-                onChange={(e) => handleFileUpload(e.target.files)}
-                className="hidden"
-                accept="*/*"
-              />
+
+            {/* File Attachments Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-gray-700">Attachments</h3>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    multiple
+                    onChange={(e) => handleFileUpload(e.target.files)}
+                    className="hidden"
+                    accept="*/*"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('file-upload').click()}
+                    disabled={uploading}
+                    className="text-sm"
+                  >
+                    {uploading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin mr-2">
+                          <ApperIcon name="Loader2" size={14} />
+                        </div>
+                        Uploading...
+                      </div>
+                    ) : (
+                      <>
+                        <ApperIcon name="Paperclip" size={14} className="mr-2" />
+                        Add Files
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {attachments.length > 0 && (
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <ApperIcon name="File" size={16} className="text-gray-500" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {attachment.file_name_c}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {(attachment.file_size_c / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeAttachment(attachment.id)}
+                        className="text-red-600 hover:text-red-700 p-1"
+                      >
+                        <ApperIcon name="X" size={14} />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+
+            <motion.div 
+              className="flex justify-end space-x-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => document.getElementById('file-upload').click()}
-                disabled={uploading}
-                className="text-sm"
+                onClick={onCancel}
+                disabled={loading}
               >
-                {uploading ? (
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading}
+                className="min-w-[100px]"
+              >
+                {loading ? (
                   <div className="flex items-center">
                     <div className="animate-spin mr-2">
-                      <ApperIcon name="Loader2" size={14} />
+                      <ApperIcon name="Loader2" size={16} />
                     </div>
-                    Uploading...
+                    Creating...
                   </div>
                 ) : (
-                  <>
-                    <ApperIcon name="Paperclip" size={14} className="mr-2" />
-                    Add Files
-                  </>
+                  'Create Task'
                 )}
               </Button>
-            </div>
-          </div>
-
-          {attachments.length > 0 && (
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {attachments.map((attachment) => (
-                <div
-                  key={attachment.id}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded border"
-                >
-                  <div className="flex items-center space-x-2">
-                    <ApperIcon name="File" size={16} className="text-gray-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {attachment.file_name_c}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {(attachment.file_size_c / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeAttachment(attachment.id)}
-                    className="text-red-600 hover:text-red-700 p-1"
-                  >
-                    <ApperIcon name="X" size={14} />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </motion.div>
-
-        <motion.div 
-          className="flex justify-end space-x-3"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading}
-            className="min-w-[100px]"
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <div className="animate-spin mr-2">
-                  <ApperIcon name="Loader2" size={16} />
-                </div>
-                Creating...
-              </div>
-            ) : (
-              'Create Task'
-            )}
-          </Button>
-        </motion.div>
-      </form>
-</form>
+            </motion.div>
+          </form>
         </CardContent>
       </Card>
     </motion.div>
