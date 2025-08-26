@@ -14,7 +14,10 @@ const TaskItem = ({ task, category, searchText = "" }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
-  const [reminderCount, setReminderCount] = useState(0);
+const [reminderCount, setReminderCount] = useState(0);
+  const [attachmentCount, setAttachmentCount] = useState(0);
+  const [showAttachments, setShowAttachments] = useState(false);
+
 const loadReminderCount = async () => {
     try {
       const reminders = await reminderService.getByTaskId(task.Id);
@@ -25,8 +28,20 @@ const loadReminderCount = async () => {
     }
   };
 
+  const loadAttachmentCount = async () => {
+    try {
+      const { default: attachmentService } = await import('@/services/api/attachmentService');
+      const attachments = await attachmentService.getByTaskId(task.Id);
+      setAttachmentCount(attachments.length);
+    } catch (error) {
+      // Silently handle error
+      setAttachmentCount(0);
+    }
+  };
+
   useEffect(() => {
     loadReminderCount();
+    loadAttachmentCount();
   }, [task.Id]);
 
   const handleStatusChange = async (newStatus) => {
@@ -113,6 +128,12 @@ const loadReminderCount = async () => {
               <span>{reminderCount}</span>
             </div>
           )}
+          {attachmentCount > 0 && (
+            <div className="flex items-center gap-1 text-xs text-green-600">
+              <ApperIcon name="Paperclip" size={12} />
+              <span>{attachmentCount}</span>
+            </div>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -120,6 +141,14 @@ const loadReminderCount = async () => {
             className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-600 hover:text-blue-700 p-1"
           >
             <ApperIcon name="Bell" size={14} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAttachments(!showAttachments)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-green-600 hover:text-green-700 p-1"
+          >
+            <ApperIcon name="Paperclip" size={14} />
           </Button>
           <Button
             variant="ghost"
@@ -162,6 +191,30 @@ const loadReminderCount = async () => {
             taskTitle={task.title_c}
             onReminderAdded={() => loadReminderCount()}
           />
+        </motion.div>
+)}
+
+      {/* Attachment Section */}
+      {showAttachments && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="mt-3 pt-3 border-t border-gray-100"
+        >
+          <React.Suspense fallback={<div>Loading attachments...</div>}>
+            {React.lazy(() => import('@/components/molecules/AttachmentList')).then(module => {
+              const AttachmentList = module.default;
+              return (
+                <AttachmentList 
+                  taskId={task.Id}
+                  onAttachmentChange={() => loadAttachmentCount()}
+                />
+              );
+            }).catch(() => (
+              <div className="text-sm text-gray-500">Failed to load attachments</div>
+            ))}
+          </React.Suspense>
         </motion.div>
       )}
     </motion.div>

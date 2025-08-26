@@ -1,23 +1,30 @@
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/atoms/Card";
-import * as categoryService from "@/services/api/categoryService";
 import ApperIcon from "@/components/ApperIcon";
 import FormField from "@/components/molecules/FormField";
 import Select from "@/components/atoms/Select";
 import Button from "@/components/atoms/Button";
 import Input from "@/components/atoms/Input";
+import * as categoryService from "@/services/api/categoryService";
+
 const TaskForm = ({ onSubmit, onCancel }) => {
-const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     title: "",
     dueDate: format(new Date(), "yyyy-MM-dd"),
     priority: "Medium",
     categoryId: "",
     reminders: []
-  })
-  const [categories, setCategories] = useState([])
-  const [errors, setErrors] = useState({})
+  });
+  const [categories, setCategories] = useState([]);
+  const [reminders, setReminders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [nextReminderId, setNextReminderId] = useState(1);
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showReminderOptions, setShowReminderOptions] = useState(false)
 
@@ -62,61 +69,98 @@ const [formData, setFormData] = useState({
   }
 const addReminder = () => {
     const reminderTime = new Date(formData.dueDate);
-    reminderTime.setHours(reminderTime.getHours() - 1); // 1 hour before due date
+    reminderTime.setHours(reminderTime.getHours() - 1);
     
     const newReminder = {
-      id: Date.now(),
-      time: format(reminderTime, "yyyy-MM-dd'T'HH:mm"),
+      id: nextReminderId,
+      datetime: format(reminderTime, "yyyy-MM-dd'T'HH:mm"),
+      type: 'notification',
       label: "1 hour before due date"
     };
     
-    setFormData(prev => ({
-      ...prev,
-      reminders: [...prev.reminders, newReminder]
-    }));
+    setReminders(prev => [...prev, newReminder]);
+    setNextReminderId(prev => prev + 1);
   };
 
   const removeReminder = (id) => {
-    setFormData(prev => ({
-      ...prev,
-      reminders: prev.reminders.filter(r => r.id !== id)
-    }));
+    setReminders(prev => prev.filter(reminder => reminder.id !== id));
+  };
+const updateReminderTime = (id, newTime) => {
+    setReminders(prev => prev.map(reminder => 
+      reminder.id === id ? { ...reminder, datetime: newTime } : reminder
+    ));
+  };
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    const uploadPromises = Array.from(files).map(async (file) => {
+      // Simulate file upload - in real implementation, you'd upload to a server
+      // and get back a file path/URL
+      const filePath = `/uploads/${Date.now()}_${file.name}`;
+      
+      return {
+        id: Date.now() + Math.random(),
+        file_name_c: file.name,
+        file_type_c: file.type,
+        file_size_c: file.size,
+        file_path_c: filePath,
+        upload_date_c: new Date().toISOString(),
+        name: file.name
+      };
+    });
+
+try {
+      const newAttachments = await Promise.all(uploadPromises);
+      setAttachments(prev => [...prev, ...newAttachments]);
+      console.log(`${newAttachments.length} file(s) prepared for upload`);
+    } catch (error) {
+      console.error("Failed to prepare files for upload:", error);
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const updateReminderTime = (id, newTime) => {
-    setFormData(prev => ({
-      ...prev,
-      reminders: prev.reminders.map(r => 
-        r.id === id 
-          ? { ...r, time: newTime, label: `Custom: ${format(new Date(newTime), "MMM d, h:mm a")}` }
-          : r
-      )
-    }));
+  const removeAttachment = (id) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
+const removeAttachment = (id) => {
+    setAttachments(prev => prev.filter(att => att.id !== id));
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     
-    if (!validateForm()) return
+    if (!validateForm()) {
+      return;
+    }
     
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true)
-      await onSubmit(formData)
+      const taskData = {
+        ...formData,
+        reminders: reminders.filter(r => r.datetime),
+        attachments: attachments
+      };
+      
+      await onSubmit(taskData);
+      
+      // Reset form
       setFormData({
         title: "",
         dueDate: format(new Date(), "yyyy-MM-dd"),
         priority: "Medium",
         categoryId: categories.length > 0 ? categories[0].Id : "",
         reminders: []
-      })
-      setShowReminderOptions(false)
+      });
+      setReminders([]);
+      setAttachments([]);
+      setShowReminderOptions(false);
     } catch (error) {
       // Error handling is done in parent component
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
-
+  };
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -192,94 +236,172 @@ const addReminder = () => {
                 </Select>
 </FormField>
             </div>
-
-            {/* Reminder Options */}
+{/* Reminder Options */}
             <div className="md:col-span-2 lg:col-span-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-gray-700">Reminders</label>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setShowReminderOptions(!showReminderOptions)}
-                  className="text-xs"
+                  className="text-sm"
                 >
-                  <ApperIcon name="Bell" size={12} className="mr-1" />
-                  {showReminderOptions ? "Hide" : "Add Reminders"}
+                  <ApperIcon name="Plus" size={14} className="mr-1" />
+                  Add Reminder
                 </Button>
               </div>
 
               {showReminderOptions && (
-                <div className="bg-gray-50 rounded-lg p-3 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={addReminder}
-                      className="text-xs"
-                    >
-                      <ApperIcon name="Plus" size={12} className="mr-1" />
-                      Add Reminder
-                    </Button>
-                  </div>
-
-                  {formData.reminders.length > 0 && (
-                    <div className="space-y-2">
-                      {formData.reminders.map((reminder) => (
-                        <div key={reminder.id} className="flex items-center gap-2 bg-white rounded p-2">
-                          <ApperIcon name="Bell" size={12} className="text-blue-600" />
-                          <input
-                            type="datetime-local"
-                            value={reminder.time}
-                            onChange={(e) => updateReminderTime(reminder.id, e.target.value)}
-                            className="flex-1 text-xs border border-gray-300 rounded px-2 py-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeReminder(reminder.id)}
-                            className="p-1 text-red-600"
-                          >
-                            <ApperIcon name="Trash2" size={12} />
-                          </Button>
-                        </div>
-                      ))}
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-2 mt-2"
+                >
+                  {reminders.map((reminder) => (
+                    <div key={reminder.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <Input
+                        type="datetime-local"
+                        value={reminder.datetime}
+                        onChange={(e) => updateReminderTime(reminder.id, e.target.value)}
+                        className="flex-1 bg-white"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeReminder(reminder.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <ApperIcon name="X" size={14} />
+                      </Button>
                     </div>
-                  )}
-                </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addReminder}
+                    className="w-full"
+                  >
+                    Add Another Reminder
+                  </Button>
+                </motion.div>
               )}
             </div>
-            
-            <div className="flex items-center gap-3 pt-2 md:col-span-2 lg:col-span-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <ApperIcon name="Loader2" size={16} className="animate-spin" />
-                ) : (
-                  <ApperIcon name="Check" size={16} />
-                )}
-                {isSubmitting ? "Creating..." : "Create Task"}
-              </Button>
-              
+        {/* File Attachments Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">Attachments</h3>
+            <div className="flex items-center space-x-2">
+              <input
+                type="file"
+                id="file-upload"
+                multiple
+                onChange={(e) => handleFileUpload(e.target.files)}
+                className="hidden"
+                accept="*/*"
+              />
               <Button
                 type="button"
-                variant="secondary"
-                onClick={onCancel}
-                disabled={isSubmitting}
+                variant="outline"
+                onClick={() => document.getElementById('file-upload').click()}
+                disabled={uploading}
+                className="text-sm"
               >
-                Cancel
+                {uploading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin mr-2">
+                      <ApperIcon name="Loader2" size={14} />
+                    </div>
+                    Uploading...
+                  </div>
+                ) : (
+                  <>
+                    <ApperIcon name="Paperclip" size={14} className="mr-2" />
+                    Add Files
+                  </>
+                )}
               </Button>
             </div>
-          </form>
+          </div>
+
+          {attachments.length > 0 && (
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {attachments.map((attachment) => (
+                <div
+                  key={attachment.id}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                >
+                  <div className="flex items-center space-x-2">
+                    <ApperIcon name="File" size={16} className="text-gray-500" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {attachment.file_name_c}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {(attachment.file_size_c / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeAttachment(attachment.id)}
+                    className="text-red-600 hover:text-red-700 p-1"
+                  >
+                    <ApperIcon name="X" size={14} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        <motion.div 
+          className="flex justify-end space-x-3"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="min-w-[100px]"
+          >
+            {loading ? (
+              <div className="flex items-center">
+                <div className="animate-spin mr-2">
+                  <ApperIcon name="Loader2" size={16} />
+                </div>
+                Creating...
+              </div>
+            ) : (
+              'Create Task'
+            )}
+          </Button>
+        </motion.div>
+      </form>
+</form>
         </CardContent>
       </Card>
     </motion.div>
-  )
-}
+  );
+};
 
-export default TaskForm
+export default TaskForm;
